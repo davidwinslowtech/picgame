@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="da">
 <head>
 <meta charset="UTF-8" />
-<title>Party Picture Puzzle</title>
+<title>Jake's konfirmation</title>
 <style>
   :root {
     --tile: 180px;
@@ -115,16 +115,16 @@
 </style>
 </head>
 <body>
-  <h1>Party Picture Puzzle</h1>
+  <h1>Jake's konfirmation</h1>
 
   <div class="controls">
     <label class="btn">
-      Load image
+      Indlæs billede
       <input type="file" id="fileInput" accept="image/*" />
     </label>
-    <button id="shuffleBtn">Shuffle</button>
-    <button id="resetBtn" class="secondary">Reset</button>
-    <button id="previewBtn" class="secondary">Show original</button>
+    <button id="shuffleBtn">Bland</button>
+    <button id="resetBtn" class="secondary">Nulstil</button>
+    <button id="previewBtn" class="secondary">Vis original</button>
   </div>
 
   <div id="board" class="board"></div>
@@ -134,7 +134,7 @@
     <span>original</span>
   </div>
 
-  <div id="status" class="status">Drag any tile onto another to swap them.</div>
+  <div id="status" class="status">Træk en brik over på en anden for at bytte dem.</div>
 
 <script>
   const TILE_COUNT = 9;
@@ -180,11 +180,11 @@
   function checkWin() {
     const solved = tiles.every((v, i) => v === i);
     if (solved) {
-      status.textContent = 'Solved!';
+      status.textContent = 'Løst!';
       status.classList.add('win');
     } else {
       status.classList.remove('win');
-      status.textContent = 'Drag any tile onto another to swap them.';
+      status.textContent = 'Træk en brik over på en anden for at bytte dem.';
     }
   }
 
@@ -196,7 +196,7 @@
       }
     } while (tiles.every((v, i) => v === i));
     render();
-    status.textContent = 'Shuffled — guide a guest to put it back.';
+    status.textContent = 'Blandet — hjælp en gæst med at samle den igen.';
     status.classList.remove('win');
   }
 
@@ -255,7 +255,7 @@
   resetBtn.addEventListener('click', reset);
   previewBtn.addEventListener('click', () => {
     preview.classList.toggle('show');
-    previewBtn.textContent = preview.classList.contains('show') ? 'Hide original' : 'Show original';
+    previewBtn.textContent = preview.classList.contains('show') ? 'Skjul original' : 'Vis original';
   });
 
   render();
