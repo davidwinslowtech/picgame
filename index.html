@@ -6,8 +6,9 @@
 <title>Jake's konfirmation</title>
 <style>
   :root {
-    /* Tile size scales with viewport. Bigger now since the header is gone. */
-    --tile: min(31vw, 31vh);
+    /* Tile size scales with viewport, accounting for the side rails
+       (~240px each + 18px gaps + 18px padding ≈ 540px reserved). */
+    --tile: min(30vh, calc((100vw - 540px) / 3));
     --gap: 6px;
     --accent: #4f6cff;
     --accent2: #ffd166;
@@ -196,6 +197,7 @@
 
   /* Narrow screens: stack rails above/below board */
   @media (max-width: 900px) {
+    :root { --tile: min(30vw, 30vh); }
     body {
       grid-template-columns: 1fr;
       grid-template-areas: "left" "board" "right" "foot";
@@ -216,7 +218,7 @@
     grid-template-areas: "board";
     gap: 0;
   }
-  body:fullscreen        { --tile: min(31vw, 31vh); }
+  body:fullscreen          { --tile: min(31vw, 31vh); }
   body:-webkit-full-screen { --tile: min(31vw, 31vh); }
 
   body:fullscreen .rail.right,
