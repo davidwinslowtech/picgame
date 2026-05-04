@@ -2,46 +2,123 @@
 <html lang="da">
 <head>
 <meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Jake's konfirmation</title>
 <style>
   :root {
-    --tile: 180px;
-    --gap: 4px;
+    /* Tile size scales with viewport. Bigger now since the header is gone. */
+    --tile: min(31vw, 31vh);
+    --gap: 6px;
+    --accent: #4f6cff;
+    --accent2: #ffd166;
+    --good: #6bd968;
+    --bad:  #ff5d6c;
+    --bg:   #15171f;
+    --panel:#1c1f2b;
+    --line: #2a2f40;
   }
   * { box-sizing: border-box; }
+  html, body { height: 100%; }
   body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    background: #1f2330;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background:
+      radial-gradient(1200px 600px at 50% -10%, #232843 0%, transparent 60%),
+      var(--bg);
     color: #f0f0f0;
     margin: 0;
-    padding: 24px;
+    padding: 18px;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    grid-template-rows: 1fr auto;
+    grid-template-areas:
+      "left  board right"
+      "foot  foot  foot";
+    gap: 18px;
+    min-height: 100vh;
+  }
+
+  /* Left rail = timer. Right rail = controls. Both are vertical on wide
+     screens, and collapse to horizontal bars on narrow screens. */
+  .rail {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: 20px;
+    gap: 10px;
+    align-self: center;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 16px;
+    min-width: 220px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.35);
   }
-  h1 { margin: 0; font-weight: 500; letter-spacing: 0.5px; }
-  .controls {
+  .rail.left  { grid-area: left;  justify-self: end; }
+  .rail.right { grid-area: right; justify-self: start; }
+  .rail h2 {
+    margin: 0 0 4px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    opacity: 0.5;
+  }
+
+  .board-wrap {
+    grid-area: board;
     display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-    justify-content: center;
     align-items: center;
+    justify-content: center;
   }
+
   button, label.btn {
-    background: #4f6cff;
+    background: var(--accent);
     color: white;
     border: none;
-    padding: 10px 18px;
-    border-radius: 6px;
+    padding: 10px 16px;
+    border-radius: 8px;
     font-size: 15px;
     cursor: pointer;
-    transition: background 0.15s;
+    transition: background 0.15s, transform 0.05s;
+    font-weight: 500;
+    text-align: center;
+    width: 100%;
   }
   button:hover, label.btn:hover { background: #6a83ff; }
-  button.secondary { background: #3a4055; }
-  button.secondary:hover { background: #4d556e; }
+  button:active, label.btn:active { transform: translateY(1px); }
+  button.secondary { background: #2a2f40; }
+  button.secondary:hover { background: #353c52; }
+  button.ghost { background: transparent; border: 1px solid var(--line); }
+  button.ghost:hover { background: #232838; }
   input[type="file"] { display: none; }
+
+  .timer-display {
+    font-variant-numeric: tabular-nums;
+    font-size: clamp(48px, 7vw, 96px);
+    font-weight: 800;
+    padding: 12px 8px;
+    border-radius: 10px;
+    background: #0e1018;
+    text-align: center;
+    letter-spacing: 2px;
+    line-height: 1;
+    color: #fff;
+  }
+  .timer-display.running { color: var(--accent2); }
+  .timer-display.done    { color: var(--bad); animation: pulse 0.8s infinite alternate; }
+  .timer-display.win     { color: var(--good); }
+  @keyframes pulse { from { opacity: 1; } to { opacity: 0.45; } }
+
+  .timer-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .timer-set {
+    display: flex; align-items: center; gap: 8px;
+    background: #0e1018; padding: 8px 12px; border-radius: 8px;
+  }
+  .timer-set input {
+    width: 70px;
+    background: transparent; color: #fff; border: 1px solid var(--line);
+    border-radius: 6px; padding: 6px 8px; font-size: 15px;
+    font-variant-numeric: tabular-nums;
+  }
+  .timer-set label { font-size: 13px; opacity: 0.7; }
 
   .board {
     display: grid;
@@ -50,9 +127,11 @@
     gap: var(--gap);
     background: #11141d;
     padding: var(--gap);
-    border-radius: 8px;
-    box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+    border-radius: 10px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.5);
     user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
   }
   .tile {
     width: var(--tile);
@@ -60,109 +139,204 @@
     background-size: calc(var(--tile) * 3) calc(var(--tile) * 3);
     background-repeat: no-repeat;
     position: relative;
-    cursor: grab;
-    border-radius: 4px;
+    cursor: pointer;
+    border-radius: 6px;
     overflow: hidden;
-    transition: transform 0.12s, box-shadow 0.12s;
-  }
-  .tile:active { cursor: grabbing; }
-  .tile.dragging { opacity: 0.4; transform: scale(0.95); }
-  .tile.drag-over {
-    outline: 3px solid #ffd166;
+    transition: transform 0.12s, box-shadow 0.12s, outline-color 0.1s;
+    outline: 3px solid transparent;
     outline-offset: -3px;
   }
+  .tile.selected {
+    outline-color: var(--accent2);
+    transform: scale(0.97);
+    box-shadow: 0 0 24px rgba(255,209,102,0.55);
+  }
+  .tile.drag-over { outline-color: var(--accent); }
+  .tile.dragging  { opacity: 0.4; }
+  .tile.correct .num { background: rgba(40,140,40,0.85); }
+
   .tile .num {
     position: absolute;
     top: 6px;
     left: 6px;
-    background: rgba(0,0,0,0.65);
+    background: rgba(0,0,0,0.7);
     color: #fff;
-    font-size: 16px;
-    font-weight: 600;
-    width: 28px;
-    height: 28px;
+    font-size: clamp(22px, 3vw, 42px);
+    font-weight: 700;
+    width: 1.6em;
+    height: 1.6em;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     pointer-events: none;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.6);
   }
-  .preview {
-    display: none;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-  }
-  .preview.show { display: flex; }
-  .preview img {
-    width: 180px;
-    height: 180px;
-    object-fit: cover;
-    border-radius: 6px;
-    border: 2px solid #4f6cff;
-  }
-  .preview span { font-size: 13px; opacity: 0.75; }
+
+
   .status {
-    font-size: 14px;
-    opacity: 0.7;
-    min-height: 20px;
+    grid-area: foot;
+    font-size: clamp(13px, 1.4vw, 18px);
+    opacity: 0.75;
+    min-height: 1.4em;
+    text-align: center;
   }
-  .win {
-    color: #6bd968;
-    font-weight: 600;
-    opacity: 1;
+  .status.win  { color: var(--good); font-weight: 700; opacity: 1; }
+  .status.lose { color: var(--bad);  font-weight: 700; opacity: 1; }
+
+  .preview { display: none; }
+  .preview.show {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+  }
+  .preview img {
+    width: 100%; aspect-ratio: 1/1; object-fit: cover;
+    border-radius: 8px; border: 1px solid var(--line);
+  }
+  .preview span { font-size: 11px; opacity: 0.6; letter-spacing: 1px; text-transform: uppercase; }
+
+  /* Narrow screens: stack rails above/below board */
+  @media (max-width: 900px) {
+    body {
+      grid-template-columns: 1fr;
+      grid-template-areas: "left" "board" "right" "foot";
+    }
+    .rail.left, .rail.right { justify-self: stretch; min-width: 0; }
+    .rail { flex-direction: row; flex-wrap: wrap; align-items: center; }
+    .rail h2 { width: 100%; }
+    .timer-display { flex: 1 1 auto; font-size: 56px; }
+    .timer-buttons { flex: 1 1 100%; }
+  }
+
+  /* Fullscreen mode: pure board + floating timer for projector */
+  body:fullscreen, body:-webkit-full-screen {
+    padding: 0;
+    background: #000;
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr;
+    grid-template-areas: "board";
+    gap: 0;
+  }
+  body:fullscreen        { --tile: min(31vw, 31vh); }
+  body:-webkit-full-screen { --tile: min(31vw, 31vh); }
+
+  body:fullscreen .rail.right,
+  body:-webkit-full-screen .rail.right,
+  body:fullscreen .status,
+  body:-webkit-full-screen .status { display: none; }
+
+  /* Left rail becomes a floating timer card in the top-left corner */
+  body:fullscreen .rail.left,
+  body:-webkit-full-screen .rail.left {
+    position: fixed;
+    top: 24px;
+    left: 24px;
+    z-index: 10;
+    background: rgba(20, 22, 32, 0.85);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    min-width: 0;
+    padding: 12px 16px;
+  }
+  body:fullscreen .rail.left h2,
+  body:-webkit-full-screen .rail.left h2,
+  body:fullscreen .rail.left .timer-set,
+  body:-webkit-full-screen .rail.left .timer-set { display: none; }
+  body:fullscreen .rail.left .timer-buttons,
+  body:-webkit-full-screen .rail.left .timer-buttons {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+  body:fullscreen .rail.left .timer-buttons button[id="resetTimerBtn"],
+  body:-webkit-full-screen .rail.left .timer-buttons button[id="resetTimerBtn"] {
+    grid-column: auto !important;
+  }
+  body:fullscreen .rail.left .timer-display,
+  body:-webkit-full-screen .rail.left .timer-display {
+    font-size: clamp(56px, 8vw, 120px);
   }
 </style>
 </head>
 <body>
-  <h1>Jake's konfirmation</h1>
+  <aside class="rail left">
+    <h2>Tid</h2>
+    <div id="timerDisplay" class="timer-display">00:30</div>
+    <div class="timer-buttons">
+      <button id="startTimerBtn">Start</button>
+      <button id="pauseTimerBtn" class="secondary">Pause</button>
+      <button id="resetTimerBtn" class="ghost" style="grid-column: span 2;">Nulstil tid</button>
+    </div>
+    <div class="timer-set">
+      <label for="timerSeconds">Sekunder</label>
+      <input id="timerSeconds" type="number" min="5" max="600" step="5" value="30" />
+    </div>
+  </aside>
 
-  <div class="controls">
+  <div class="board-wrap">
+    <div id="board" class="board" aria-label="Puslespil"></div>
+  </div>
+
+  <aside class="rail right">
+    <h2>Spil</h2>
     <label class="btn">
       Indlæs billede
       <input type="file" id="fileInput" accept="image/*" />
     </label>
-    <button id="shuffleBtn">Bland</button>
-    <button id="resetBtn" class="secondary">Nulstil</button>
-    <button id="previewBtn" class="secondary">Vis original</button>
-  </div>
+    <button id="shuffleBtn" class="secondary">Bland</button>
+    <button id="resetBtn" class="ghost">Nulstil</button>
+    <button id="previewBtn" class="ghost">Vis original</button>
+    <button id="fullscreenBtn" class="ghost">Fuldskærm</button>
+    <div id="preview" class="preview">
+      <img id="previewImg" alt="original" />
+      <span>original</span>
+    </div>
+  </aside>
 
-  <div id="board" class="board"></div>
-
-  <div id="preview" class="preview">
-    <img id="previewImg" alt="original" />
-    <span>original</span>
-  </div>
-
-  <div id="status" class="status">Træk en brik over på en anden for at bytte dem.</div>
+  <div id="status" class="status">Indlæs et billede, tryk Bland, og start tiden. Råb to tal for at bytte to brikker.</div>
 
 <script>
-  const TILE_COUNT = 9;
-  const board = document.getElementById('board');
-  const status = document.getElementById('status');
-  const fileInput = document.getElementById('fileInput');
-  const shuffleBtn = document.getElementById('shuffleBtn');
-  const resetBtn = document.getElementById('resetBtn');
-  const previewBtn = document.getElementById('previewBtn');
-  const preview = document.getElementById('preview');
-  const previewImg = document.getElementById('previewImg');
+(() => {
+  'use strict';
 
-  // tiles[i] = which original-piece index sits in slot i (0-8, left-to-right, top-to-bottom)
+  const board         = document.getElementById('board');
+  const statusEl      = document.getElementById('status');
+  const fileInput     = document.getElementById('fileInput');
+  const shuffleBtn    = document.getElementById('shuffleBtn');
+  const resetBtn      = document.getElementById('resetBtn');
+  const previewBtn    = document.getElementById('previewBtn');
+  const fullscreenBtn = document.getElementById('fullscreenBtn');
+  const preview       = document.getElementById('preview');
+  const previewImg    = document.getElementById('previewImg');
+
+  const timerDisplay   = document.getElementById('timerDisplay');
+  const startTimerBtn  = document.getElementById('startTimerBtn');
+  const pauseTimerBtn  = document.getElementById('pauseTimerBtn');
+  const resetTimerBtn  = document.getElementById('resetTimerBtn');
+  const timerSecondsIn = document.getElementById('timerSeconds');
+
+  // tiles[i] = which original-piece index sits in slot i (0..8, left-to-right, top-to-bottom)
   let tiles = [0,1,2,3,4,5,6,7,8];
-  let imageUrl = 'https://picsum.photos/540/540?random=1';
+  let imageUrl = 'https://picsum.photos/600/600?random=1';
+  let selectedSlot = null;
+  let solved = true;
+  let gameActive = false; // true while timer is running and puzzle not yet solved
 
+  // ---------- Rendering ----------
   function pieceBackgroundPosition(pieceIndex) {
     const col = pieceIndex % 3;
     const row = Math.floor(pieceIndex / 3);
-    // Negative offsets shift the big bg image so the right portion shows.
-    return `-${col * 180}px -${row * 180}px`;
+    // With background-size: 300% 300%, percentage positions align the same
+    // % point of the image with that % point of the container, so the three
+    // valid stops are 0%, 50%, 100%.
+    return `${col * 50}% ${row * 50}%`;
   }
 
   function render() {
     board.innerHTML = '';
+    const frag = document.createDocumentFragment();
     tiles.forEach((piece, slot) => {
       const t = document.createElement('div');
       t.className = 'tile';
+      if (piece === slot) t.classList.add('correct');
+      if (slot === selectedSlot) t.classList.add('selected');
       t.draggable = true;
       t.dataset.slot = slot;
       t.style.backgroundImage = `url("${imageUrl}")`;
@@ -171,54 +345,78 @@
       num.className = 'num';
       num.textContent = slot + 1;
       t.appendChild(num);
-      board.appendChild(t);
+      frag.appendChild(t);
     });
+    board.appendChild(frag);
     previewImg.src = imageUrl;
     checkWin();
   }
 
   function checkWin() {
-    const solved = tiles.every((v, i) => v === i);
-    if (solved) {
-      status.textContent = 'Løst!';
-      status.classList.add('win');
+    const isSolved = tiles.every((v, i) => v === i);
+    solved = isSolved;
+    if (isSolved && gameActive) {
+      gameActive = false;
+      stopTimer();
+      timerDisplay.classList.remove('running','done');
+      timerDisplay.classList.add('win');
+      statusEl.textContent = `🏆 Løst med ${formatTime(remainingMs)} tilbage!`;
+      statusEl.className = 'status win';
+    } else if (isSolved) {
+      statusEl.textContent = '✅ Løst!';
+      statusEl.className = 'status win';
     } else {
-      status.classList.remove('win');
-      status.textContent = 'Træk en brik over på en anden for at bytte dem.';
+      statusEl.classList.remove('win');
+      if (!statusEl.classList.contains('lose')) {
+        statusEl.textContent = selectedSlot === null
+          ? 'Råb to tal — fx "3 og 7" — for at bytte to brikker. Eller klik to brikker.'
+          : `Brik ${selectedSlot + 1} valgt. Klik en anden for at bytte.`;
+      }
     }
   }
 
-  function shuffle() {
-    do {
-      for (let i = tiles.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [tiles[i], tiles[j]] = [tiles[j], tiles[i]];
-      }
-    } while (tiles.every((v, i) => v === i));
-    render();
-    status.textContent = 'Blandet — hjælp en gæst med at samle den igen.';
-    status.classList.remove('win');
-  }
-
-  function reset() {
-    tiles = [0,1,2,3,4,5,6,7,8];
+  // ---------- Swapping ----------
+  function swap(a, b) {
+    if (a === b) return;
+    [tiles[a], tiles[b]] = [tiles[b], tiles[a]];
+    selectedSlot = null;
     render();
   }
 
-  // Drag-and-drop: swap source slot and target slot.
+  function selectSlot(slot) {
+    if (slot == null || isNaN(slot)) return;
+    if (selectedSlot === null) {
+      selectedSlot = slot;
+      render();
+    } else if (selectedSlot === slot) {
+      selectedSlot = null;
+      render();
+    } else {
+      swap(selectedSlot, slot);
+    }
+  }
+
+  // Click / tap to swap (works everywhere — Chrome, Safari, touch, projector remote)
+  board.addEventListener('click', (e) => {
+    const tile = e.target.closest('.tile');
+    if (!tile) return;
+    selectSlot(Number(tile.dataset.slot));
+  });
+
+  // Drag-and-drop as a bonus on desktops that support it
   let dragSlot = null;
   board.addEventListener('dragstart', (e) => {
     const tile = e.target.closest('.tile');
     if (!tile) return;
     dragSlot = Number(tile.dataset.slot);
     tile.classList.add('dragging');
-    e.dataTransfer.effectAllowed = 'move';
-    // Some browsers need data set on the transfer.
-    e.dataTransfer.setData('text/plain', String(dragSlot));
+    try {
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', String(dragSlot));
+    } catch (_) {}
   });
-  board.addEventListener('dragend', (e) => {
-    const tile = e.target.closest('.tile');
-    if (tile) tile.classList.remove('dragging');
+  board.addEventListener('dragend', () => {
+    document.querySelectorAll('.tile.dragging').forEach(el => el.classList.remove('dragging'));
     document.querySelectorAll('.tile.drag-over').forEach(el => el.classList.remove('drag-over'));
     dragSlot = null;
   });
@@ -234,12 +432,57 @@
     e.preventDefault();
     const tile = e.target.closest('.tile');
     if (!tile || dragSlot === null) return;
-    const targetSlot = Number(tile.dataset.slot);
-    if (targetSlot === dragSlot) return;
-    [tiles[dragSlot], tiles[targetSlot]] = [tiles[targetSlot], tiles[dragSlot]];
-    render();
+    swap(dragSlot, Number(tile.dataset.slot));
+    dragSlot = null;
   });
 
+  // Keyboard: press 1..9 then 1..9 to swap two slots
+  let keyBuffer = null;
+  document.addEventListener('keydown', (e) => {
+    if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+    if (/^[1-9]$/.test(e.key)) {
+      const n = Number(e.key) - 1;
+      if (keyBuffer === null) {
+        keyBuffer = n;
+        selectedSlot = n;
+        render();
+      } else {
+        const a = keyBuffer; keyBuffer = null;
+        swap(a, n);
+      }
+    } else if (e.key === 'Escape') {
+      keyBuffer = null;
+      selectedSlot = null;
+      render();
+    } else if (e.key === ' ' || e.key === 'Enter') {
+      // don't hijack file/buttons
+    }
+  });
+
+  // ---------- Shuffle / reset ----------
+  function shuffle() {
+    do {
+      for (let i = tiles.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [tiles[i], tiles[j]] = [tiles[j], tiles[i]];
+      }
+    } while (tiles.every((v, i) => v === i));
+    selectedSlot = null;
+    statusEl.classList.remove('win','lose');
+    timerDisplay.classList.remove('win','done');
+    render();
+    statusEl.textContent = 'Blandet! Tryk Start for at starte uret.';
+  }
+
+  function reset() {
+    tiles = [0,1,2,3,4,5,6,7,8];
+    selectedSlot = null;
+    statusEl.classList.remove('win','lose');
+    timerDisplay.classList.remove('win','done');
+    render();
+  }
+
+  // ---------- File input ----------
   fileInput.addEventListener('change', (e) => {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
@@ -247,8 +490,11 @@
     reader.onload = (ev) => {
       imageUrl = ev.target.result;
       reset();
+      statusEl.textContent = 'Billede indlæst. Tryk Bland for at starte spillet.';
     };
     reader.readAsDataURL(file);
+    // Allow re-uploading the same file later
+    fileInput.value = '';
   });
 
   shuffleBtn.addEventListener('click', shuffle);
@@ -258,7 +504,114 @@
     previewBtn.textContent = preview.classList.contains('show') ? 'Skjul original' : 'Vis original';
   });
 
+  // ---------- Fullscreen ----------
+  function isFullscreen() {
+    return document.fullscreenElement || document.webkitFullscreenElement;
+  }
+  fullscreenBtn.addEventListener('click', async () => {
+    try {
+      if (!isFullscreen()) {
+        const el = document.documentElement;
+        if (el.requestFullscreen)            await el.requestFullscreen();
+        else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+      } else {
+        if (document.exitFullscreen)            await document.exitFullscreen();
+        else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+      }
+    } catch (err) {
+      console.warn('Fullscreen failed:', err);
+    }
+  });
+  document.addEventListener('fullscreenchange', () => {
+    fullscreenBtn.textContent = isFullscreen() ? 'Afslut fuldskærm' : 'Fuldskærm';
+  });
+
+  // ---------- Timer ----------
+  let timerInterval = null;
+  let endTime = 0;
+  let remainingMs = 30 * 1000;
+  let durationMs  = 30 * 1000;
+
+  function formatTime(ms) {
+    if (ms < 0) ms = 0;
+    const totalSec = Math.ceil(ms / 1000);
+    const m = Math.floor(totalSec / 60);
+    const s = totalSec % 60;
+    return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  }
+
+  function renderTimer() {
+    timerDisplay.textContent = formatTime(remainingMs);
+  }
+
+  function tick() {
+    remainingMs = endTime - Date.now();
+    if (remainingMs <= 0) {
+      remainingMs = 0;
+      renderTimer();
+      stopTimer();
+      timerDisplay.classList.remove('running','win');
+      timerDisplay.classList.add('done');
+      if (!solved) {
+        gameActive = false;
+        statusEl.textContent = '⏰ Tiden er gået!';
+        statusEl.className = 'status lose';
+      }
+      return;
+    }
+    renderTimer();
+  }
+
+  function startTimer() {
+    if (solved) {
+      // Auto-shuffle if the puzzle is currently solved, so Start always begins a round
+      shuffle();
+    }
+    if (timerInterval) return; // already running
+    if (remainingMs <= 0) remainingMs = durationMs;
+    endTime = Date.now() + remainingMs;
+    timerInterval = setInterval(tick, 200);
+    timerDisplay.classList.remove('done','win');
+    timerDisplay.classList.add('running');
+    statusEl.classList.remove('win','lose');
+    statusEl.textContent = 'Spillet er i gang! Råb to tal for at bytte to brikker.';
+    gameActive = true;
+  }
+
+  function stopTimer() {
+    if (timerInterval) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
+  }
+
+  function pauseTimer() {
+    if (!timerInterval) return;
+    remainingMs = endTime - Date.now();
+    if (remainingMs < 0) remainingMs = 0;
+    stopTimer();
+    timerDisplay.classList.remove('running');
+    statusEl.textContent = 'Pause.';
+  }
+
+  function resetTimer() {
+    stopTimer();
+    durationMs = Math.max(5, Math.min(600, Number(timerSecondsIn.value) || 30)) * 1000;
+    remainingMs = durationMs;
+    timerDisplay.classList.remove('running','done','win');
+    gameActive = false;
+    renderTimer();
+  }
+
+  startTimerBtn.addEventListener('click', startTimer);
+  pauseTimerBtn.addEventListener('click', pauseTimer);
+  resetTimerBtn.addEventListener('click', resetTimer);
+  timerSecondsIn.addEventListener('change', resetTimer);
+
+  // ---------- Init ----------
+  resetTimer();
   render();
+})();
 </script>
 </body>
 </html>
